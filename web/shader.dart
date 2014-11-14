@@ -49,7 +49,7 @@ Shader quadShader = new Shader("""
 	void main(){
 		v_texcoord = (u_textureTransform*vec4(a_pos,1.0)).xy;
 		vec4 pos = u_viewTransform*u_cameraTransform*u_objectTransform*vec4(a_pos, 1.0);
-		v_dist = pos.z;
+		v_dist = pos.z/2.0;
 		gl_Position = pos;
 	}
 """,/*============================================================*/"""
@@ -64,7 +64,9 @@ Shader quadShader = new Shader("""
 	void main(){
 		vec4 col = texture2D(u_tex, v_texcoord);
 		if(col.a>0.0){
-			gl_FragColor = vec4((col*u_color).xyz/(v_dist*v_dist*20.0+1.0),1.0);
+//			float fog = 1.0/(v_dist*4.0+1.0);
+			float fog = 1.0-v_dist;
+			gl_FragColor = vec4((col*u_color).xyz*fog+vec3(0.2,0.2,0.2)*(1.0-fog),1.0);
 		}else{
 			discard;
 		}

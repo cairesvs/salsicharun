@@ -101,9 +101,9 @@ class Quad{
 		gl.uniformMatrix4fv(objectTransformLocation, false, objectMatrix.storage);
 
 		textureMatrix.setIdentity();
-		textureMatrix.scale(1.0/texture.width, 1.0/texture.height, 0.0);
-		textureMatrix.translate((uo+0.05)*1.0, (vo+0.05)*1.0, -1.0);
-		textureMatrix.scale((w-0.1)*1.0, (h-0.1)*1.0, 0.0);
+    textureMatrix.scale(1.0/texture.width, 1.0/texture.height, 0.0);
+    textureMatrix.translate((uo+0.25), (vo+0.25), 0.0);
+    textureMatrix.scale((w-0.5), (h-0.5), 0.0);
 		gl.uniformMatrix4fv(textureTransformLocation, false, textureMatrix.storage);
 
 		gl.uniform4fv(colorLocation, color.storage);
@@ -141,10 +141,16 @@ class Game {
 	Quad quad;
 	Texture spriteTexture = new Texture("assets/sprite.png");
 	Texture groundTexture = new Texture("assets/ground.png");
+	List<bool> keysDown = new List<bool>(256);
+  List<bool> keysPressed = new List<bool>(256);
 
 	double fov = 70.0;
 
+	List<Vector3> zombiesPositions = new List<Vector3>();
+
 	void start() {
+		keysDown.fillRange(0, keysDown.length, false);
+    keysPressed.fillRange(0, keysPressed.length, false);
 		random = new Math.Random();
 		canvas = querySelector("#game_canvas");
 		gl = canvas.getContext("webgl");
@@ -157,21 +163,70 @@ class Game {
 		}
 		gl.enable(WebGL.DEPTH_TEST);
 		gl.depthFunc(WebGL.LESS);
+		for(int i = 0; i< 100; i++){
+			double x = (random.nextDouble()-0.5)*512;
+			double z = (random.nextDouble()-0.5)*512;
+			zombiesPositions.add(new Vector3(x, 0.0, z));
+		}
+
+		window.onKeyDown.listen(onKeyDown);
+		window.onKeyUp.listen(onKeyUp);
+
 		quad = new Quad(quadShader);
 		Texture.loadAll();
-		window.requestAnimationFrame(render);
+		window.requestAnimationFrame(animate);
+
 	}
 
-	void render(double time){
+  void onKeyDown(KeyboardEvent e) {
+    if (e.keyCode<keysDown.length) {
+        keysDown[e.keyCode]=true;
+    }
+  }
+
+  void onKeyUp(KeyboardEvent e) {
+    if (e.keyCode<keysDown.length) keysDown[e.keyCode]=false;
+  }
+
+	int lastTime = new DateTime.now().millisecondsSinceEpoch;
+	double unprocessedFrames = 0.0;
+
+	void animate(double time){
+		int now = new DateTime.now().millisecondsSinceEpoch;
+		unprocessedFrames+=(now-lastTime)*60/1000.0;
+		if (unprocessedFrames>10.0) unprocessedFrames = 10.0;
+		while(unprocessedFrames>1.0){
+			tick();
+			unprocessedFrames-=1.0;
+		}
+		render();
+	}
+
+	void tick(){
+		if(keysDown[87]){
+			print("caoires");
+		}
+		if(keysDown[65]){
+
+		}
+		if(keysDown[83]){
+
+		}
+		if(keysDown[68]){
+
+		}
+	}
+
+	void render(){
 		gl.viewport(0, 0, canvas.width, canvas.height);
-		gl.clearColor(0.0,0.0,0.0, 1.0);
+		gl.clearColor(0.2, 0.2, 0.2, 1.0);
 		gl.clear(WebGL.COLOR_BUFFER_BIT);
 		double pixelScale = 2.0;
 
-		Matrix4 viewMatrix = makePerspectiveMatrix(fov*Math.PI/180, canvas.width/canvas.height, 0.01, 100.0);
+		Matrix4 viewMatrix = makePerspectiveMatrix(fov*Math.PI/180, canvas.width/canvas.height, 0.01, 2.0);
 		double scale = pixelScale*2.0/canvas.height;
 		Matrix4 screenMatrix = new Matrix4.identity().scale(scale,-scale, scale);
-		Matrix4 cameraMatrix = new Matrix4.identity().translate(0.0,16.0,-50.0).rotateY(new DateTime.now().millisecondsSinceEpoch%100000/100000.0*Math.PI*2);
+		Matrix4 cameraMatrix = new Matrix4.identity().translate(0.0,32.0,-50.0).rotateY(new DateTime.now().millisecondsSinceEpoch%100000/100000.0*Math.PI*2);
 		Matrix4 floorCameraMatrix = new Matrix4.identity().rotateX(Math.PI/2.0);
 
 		Vector4 whiteColor = new Vector4(1.0, 1.0, 1.0, 1.0);
@@ -186,12 +241,13 @@ class Game {
 
 		quad.setTexture(spriteTexture);
 		quad.setCamera(viewMatrix, screenMatrix);
-		quad.renderBillboard(cameraMatrix*new Vector3(30.0, 0.0, 0.0), 32, 32, 32,0, whiteColor);
-		quad.renderBillboard(cameraMatrix*new Vector3(-30.0, 0.0, 0.0), 32, 32, 32,0, whiteColor);
-		quad.renderBillboard(cameraMatrix*new Vector3(0.0, 0.0, 30.0), 32, 32, 32,0, whiteColor);
-   	quad.renderBillboard(cameraMatrix*new Vector3(0.0, 0.0, -30.0), 32, 32, 32,0, whiteColor);
+		for(int i = 0; i<zombiesPositions.length;i++){
+			quad.renderBillboard(cameraMatrix*zombiesPositions[i], 16, 16, 32,0, whiteColor);
+		}
 
-		window.requestAnimationFrame(render);
+		quad.renderBillboard(cameraMatrix*new Vector3(0.0,0.0,0.0), 16, 16, 0,0, whiteColor);
+
+		window.requestAnimationFrame(animate);
 	}
 }
 
